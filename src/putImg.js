@@ -291,10 +291,7 @@ function ImageUploader() {
        <div className="overlay">
        <div className={`popup ${result ? 'active' : ''}`}>
          <p>{result}</p>
-<<<<<<< HEAD
-=======
          <div className="loading"></div>
->>>>>>> c607a0493f406cff6196a6c2b1aa9886706a19ea
        </div>
      </div>
       )}
