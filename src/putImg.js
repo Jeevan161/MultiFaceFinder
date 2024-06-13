@@ -1,19 +1,21 @@
-import React, { useState,useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Webcam from 'react-webcam';
 import defaultimg from './upload.png';
 
 function ImageUploader() {
-  useEffect(()=>
-    {
-        document.title="Add Face";
-    })
+  useEffect(() => {
+    document.title = "Add Face";
+  }, []);
+
   const [file, setFile] = useState(null);
   const [name, setName] = useState('');
   const [result, setResult] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [useWebcam, setUseWebcam] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
   const webcamRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -47,6 +49,7 @@ function ImageUploader() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Set loading state to true
     if (file) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -71,17 +74,17 @@ function ImageUploader() {
           },
         }
       );
+      setResult(response.data.body);
+      setShowPopup(true); // Show popup
       setTimeout(() => {
-        setResult(response.data.body);
-        setFile(null);
-        setName('');
-        setResult('');
-        setSelectedFile(null);
-        setCapturedImage(null);
+        setShowPopup(false); // Hide popup after 3 seconds
+        window.location.reload(); // Refresh the page
       }, 3000);
     } catch (error) {
       console.error('Error:', error);
       setResult('An error occurred while uploading the image.');
+    } finally {
+      setLoading(false); // Set loading state to false
     }
   };
 
@@ -91,6 +94,8 @@ function ImageUploader() {
     setSelectedFile(null);
     setCapturedImage(null);
   };
+
+  const isSubmitDisabled = !name || (!file && !capturedImage);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -130,6 +135,7 @@ function ImageUploader() {
           #img-view img {
             width: 80%;
             margin-top: 25px;
+            max-height: 30vh;
             height: 50%;
             object-fit:contain;
           }
@@ -141,7 +147,7 @@ function ImageUploader() {
           }
           .nameinp {
             padding:10px 20px;
-            margin :2px 0px 10px 0px;
+            margin :20px 0px 10px 0px;
             font-size:18px;
             border-radius:15px;
             border:none;
@@ -153,6 +159,8 @@ function ImageUploader() {
             display:flex;
             flex-direction:column;
             align-items:center;
+            width:30%;
+            max-width:300px; 
             justify-content:center;
           }
           .subchi button {
@@ -216,7 +224,12 @@ function ImageUploader() {
             display:flex;
             flex-direction :row;
           }
-          .btns button
+            #drop-area video
+            {
+            width: -webkit-fill-available;
+            margin :15px;
+            }
+          .btns button,  #drop-area button
           {
             padding:10px;
             margin:10px;
@@ -229,46 +242,97 @@ function ImageUploader() {
           {
             box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, rgba(0, 0, 0, 0.07) 0px 2px 4px, rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px, rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
           }
-        `}</style>
-        <div>
-          <label htmlFor="input-file" id="drop-area">
-            <input type="file" accept="image/*" id="input-file" onChange={handleFileChange} hidden required={!useWebcam && !capturedImage} />
-            <div className='pp' id="img-view">
-              {selectedFile ? (
-                <img src={URL.createObjectURL(selectedFile.file)} width={"150px"} height={"150px"} alt="Uploaded preview" />
-              ) : capturedImage ? (
-                <img src={capturedImage} width={"150px"} height={"150px"} alt="Captured preview" />
-              ) : useWebcam ? (
-                <Webcam 
-                  audio={false}
-                  ref={webcamRef}
-                  screenshotFormat="image/jpeg"
-                  width={200}
-                  height={200}
-                />
-              ) : (
-                <img src={defaultimg} width={"150px"} alt="Default" />
-              )}
-              <p>Drag and drop or click here <br />to upload image.</p>
-              <span>Upload any image from desktop</span>
-            </div>
-          </label>
-        </div>
-        <div className='btns'> 
-          <button type="button" onClick={handleWebcamToggle}>
-            {useWebcam ? "Use File Upload" : "Use Webcam"}
-            
-          </button>
-          {useWebcam && <button type="button" onClick={handleCapture}>Capture Photo</button>}
-        </div>
-        
-        <div className='subchi'>
-          <input type="text" className='nameinp' placeholder="Name" value={name} onChange={handleNameChange} required />
-          <button type="submit">Upload Image</button>
+            .popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.loading {
+
+  width: 20px;
+  height: 20px;
+  border: 3px black #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+ 
+  {
           
-        </div>
+  }
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+  z-index: 999; /* Ensure the overlay is behind the popup */
+}
+  .popup.active {
+  background-color: #ffffff; /* Change the background color of the popup */
+  /* Add any other styles you want for the active state */
+}
+
+        `}</style>
+      {showPopup && (
+       <div className="overlay">
+       <div className={`popup ${result ? 'active' : ''}`}>
+         <p>{result}</p>
+       </div>
+     </div>
+      )}
         
-        {result && <p>{result}</p>}
+        <div id="drop-area">
+          {useWebcam ? (
+            <>
+              <Webcam ref={webcamRef} screenshotFormat="image/jpeg" />
+              <button type="button" onClick={handleCapture}>Capture Photo</button>
+            </>
+          ) : (
+            <div id="img-view">
+              <img
+                src={capturedImage || (selectedFile ? URL.createObjectURL(selectedFile.file) : defaultimg)}
+                alt="Uploaded"
+              />
+              <span>{selectedFile ? selectedFile.name : 'Drag & Drop or Click to select an image'}</span>
+              <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} id="fileInput" />
+              <label htmlFor="fileInput" style={{ cursor: 'pointer' }}>Choose File</label>
+            </div>
+          )}
+          </div>
+          
+          <input
+            type="text"
+            placeholder="Enter name"
+            value={name}
+            onChange={handleNameChange}
+            className="nameinp"
+          />
+          
+          <div className="btns">
+          <button type="button" onClick={handleWebcamToggle}>
+  {useWebcam ? 'Upload Image' : 'Use Webcam'}
+</button>
+          </div>
+        
+        <div className="subchi">
+          <button type="submit" disabled={isSubmitDisabled}>
+            {loading ? <div className="loading"></div> : 'Upload Image'}
+          </button>
+        </div>
       </div>
     </form>
   );
